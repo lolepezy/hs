@@ -1,18 +1,6 @@
 
-import Data.Char (digitToInt)
-import System.IO
 import Data.Map (Map)
-import qualified Data.Map as Map
-
-makeList :: String -> [String]
-makeList str = read $ "[" ++ (filter (\c -> c /= '\\') str) ++ "]"
-
--- Read file with words
-readLines = do
-        handle <- openFile "words.txt" ReadMode
-        list <- hGetLine handle
-        hClose handle
-        return list
+import qualified Data.List as List
 
 contains :: Eq a => [a] -> a -> Bool
 contains [] x = False
@@ -40,10 +28,7 @@ anagramClasses (w:words) = (w:anagrams) : anagramClasses notAnagrams
 
 
 --main = print $ head (makeList "\"CARE\",\"ABOUT\",\"ABOVE\",\"ABSENCE\",\"ABSOLUTELY\"")
-main = print $ anagramClasses ["CARE", "RACE"]
+main = print $ equalSets [1, 2, 2] [2, 2, 1, 2]
 
+--anagramClasses ["CARE", "RACE", "ACRE", "BARC", "CRAB"]
 
-
-main = do
-	lines <- readLines
-	print $ head (tail (makeList lines))
