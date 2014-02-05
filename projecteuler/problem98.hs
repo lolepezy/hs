@@ -14,17 +14,6 @@ readLines = do
         hClose handle
         return list
 
-contains :: Eq a => [a] -> a -> Bool
-contains [] x = False
-contains (y:xs) x = x == y || contains xs x
-
-unique :: Eq a => [a] -> [a]
-unique [] = []
-unique (x:xs) = if contains xs x then unique xs else (x:unique xs)
-
-makeList :: String -> [String]
-makeList str = read $ "[" ++ (filter (\c -> c /= '\\') str) ++ "]"
-
 equalSets :: Eq a => [a] -> [a] -> Bool
 equalSets x y = nested x y && nested y x
     where nested :: Eq b => [b] -> [b] -> Bool
