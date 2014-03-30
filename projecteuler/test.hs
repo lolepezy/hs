@@ -31,7 +31,7 @@ anagramClasses [] = AnagramClass []
 anagramClasses (w : words) = AnagramClass ((w:anagrams) : anagrams1)
     where AnagramClass anagrams1 = anagramClasses others 
           (anagrams, others) = List.partition (anagram w) words
-          anagram word1 word2     = length word1 == length word2 && equalSets word1 word2 
+          anagram word1 word2 = length word1 == length word2 && equalSets word1 word2 
 
 type EncMap = Map Char Int 
 
@@ -49,6 +49,13 @@ encodings s = encMap s (Map.fromList [] :: EncMap)
           flatten list = foldr (++) [] list
  
  
+checkSquare s = filter isSquare $ encodings s
+  where
+    isSquare :: [Int] -> Bool
+    isSquare digits = case intSqrt (read (foldr (++) "" (map show digits)) :: Int) of
+      Nothing -> False
+      Just _ -> True
+
 
 --main = print $ head (makeList "\"CARE\",\"ABOUT\",\"ABOVE\",\"ABSENCE\",\"ABSOLUTELY\"")
 --main = print $ anagramClasses ["CARE", "RACE", "ACRE", "BARC", "CRAB"]

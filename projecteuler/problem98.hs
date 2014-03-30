@@ -34,17 +34,33 @@ unique :: Eq a => [a] -> [a]
 unique [] = []
 unique z@(x:xs) = if (any ((==) x) xs) then xs else z 
 
-encodings :: String -> Map Char Int
-encodings s = Map.fromList [ (c, d) | c <- unique s, d <- [0..9]]
 
+type EncMap = Map Char Int 
 
+encodings :: String -> [[Int]]
+encodings [] = []
+encodings s = encMap s (Map.fromList [] :: EncMap)
+  where
+    encMap :: String -> EncMap -> [[Int]]
+    encMap [] _ = [[]]
+    encMap (c : cs) mapping = case Map.lookup c mapping of 
+      Just digit -> map (digit : ) (encMap cs mapping)
+      Nothing -> flatten $ map makeOptions $ filter (\d -> not (d `elem` (Map.elems mapping))) [0..9]
+        where
+          makeOptions digit = [ digit : rest | rest <- encMap cs (Map.insert c digit mapping)] 
+          flatten list = foldr (++) [] list
+
+squareEncodings s = filter isSquare $ map number (encodings s)
+  where
+    number :: [Int] -> Int
+    number digits = read (foldr (++) "" (map show digits)) :: Int
+    isSquare d = case intSqrt d of
+      Nothing -> False
+      Just _ -> True
+
+maxSquare :: [String] -> Int
+maxSquare words = maximum $ foldr (++) [] $ map (\ac -> map squareEncodings ac) (anagramClasses words) 
 
 main = do
-	lines <- readLines
-	print $ xxx
-         where  
-               enMaps = map ( encodings . head) anagramSets
-			   anagramSets = filter longerThanOne ((anagramClasses . makeList) lines)
-               longerThanOne (x:y:xs) = True
-               longerThanOne _ = False
-
+  lines <- readLines  
+  print $ maxSquare $ makeList lines
