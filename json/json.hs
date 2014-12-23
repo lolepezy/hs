@@ -104,8 +104,9 @@ jkey = jquotedKey <|> identifier
 
 jquotedKey = do
   char '\''
-  identifier
+  i <- identifier
   char '\''
+  return i
 
 jstring = many alphaNum
 identifier = many alphaNum
