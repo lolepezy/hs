@@ -24,6 +24,7 @@ equalSets x y = nested x y && nested y x
           nested ps [] = False
           nested (p:ps) qs = any ((==) p) qs && nested ps qs
 
+
 data AnagramClass = AnagramClass [[String]] deriving Show
 
 anagramClasses :: [String] -> AnagramClass
@@ -31,7 +32,11 @@ anagramClasses [] = AnagramClass []
 anagramClasses (w : words) = AnagramClass ((w:anagrams) : anagrams1)
     where AnagramClass anagrams1 = anagramClasses others 
           (anagrams, others) = List.partition (anagram w) words
-          anagram word1 word2 = length word1 == length word2 && equalSets word1 word2 
+          anagram word1 word2 = List.sort word1 == List.sort word2
+
+
+
+-- Encodings and stuff
 
 type EncMap = Map Char Int 
 
@@ -58,10 +63,10 @@ checkSquare s = filter isSquare $ encodings s
 
 
 --main = print $ head (makeList "\"CARE\",\"ABOUT\",\"ABOVE\",\"ABSENCE\",\"ABSOLUTELY\"")
---main = print $ anagramClasses ["CARE", "RACE", "ACRE", "BARC", "CRAB"]
+main = print $ anagramClasses ["CARE", "RACE", "ACRE", "BARC", "CRAB"]
 
 --main = print $ map intSqrt [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 144]
-main = print $ encodings "AABB"
+--main = print $ encodings "AABB"
 
 --equalSets [1, 2, 2] [2, 2, 1, 2]
 
