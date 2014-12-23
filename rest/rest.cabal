@@ -15,5 +15,7 @@ executable rest
                , resource-pool       >= 0.2.3.0
                , bytestring          >= 0.10.0.2
                , mtl                 >= 2.1.2
+               , time                >= 1.4.0.1
+               , old-locale          >= 1.0.0.5
 
 

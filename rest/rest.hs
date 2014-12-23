@@ -14,18 +14,19 @@ import Data.Pool (createPool, withResource)
 
 data CommandAudit = CommandAudit {
 	caId :: Int,
-	commandType :: String
+	commandType :: Maybe String,
+	commandSummary :: Maybe String
 } deriving (Show, Typeable)
 
 instance JSON CommandAudit where
-    showJSON ca = makeObj [("id", showJSON $ caId ca),("commandType", showJSON $ commandType ca)]
+    showJSON ca = makeObj [("id", showJSON $ caId ca),("commandType", showJSON $ commandType ca), ("commandSummary", showJSON $ commandSummary ca)]
     readJSON _ = mzero
 
 instance FromRow CommandAudit where
-     fromRow = CommandAudit <$> field <*> field
+     fromRow = CommandAudit <$> field <*> field <*> field
 
 main = do
     pool <- createPool (connect defaultConnectInfo { connectDatabase = "certdb" }) close 1 10 5
     withResource pool $ \conn -> do
-	  xs :: [CommandAudit] <- query conn [sql| select id, commandtype from commandaudit |]()
+	  xs :: [CommandAudit] <- query conn [sql| select id, commandtype, commandsummary from commandaudit |]()
 	  print $ encode $ map showJSON xs
