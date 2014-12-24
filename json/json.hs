@@ -75,38 +75,39 @@ e
 
 data JSONValue = JSONObject [(String, JSONValue)] 
   | JSONArray [JSONValue]
-  | JSONString
+  | JSONString String
   | JSONNull
+  deriving (Eq, Ord, Show)
 
-jvalue :: GenParser Char st JSONValue
-jvalue = jobject <|> jarray <|> jstring
+jvalue :: Parser JSONValue
+jvalue = try jarray <|> try jobject <|> try jstring
 
+jobject :: Parser JSONValue
 jobject = do 
   (char '{') 
-  f <- many fields
+  f <- fields
   (char '}') <?> "} at end of object"
-  return JSONNull
+  return $ JSONObject f
   
+jarray :: Parser JSONValue
 jarray = do
   (char '[') 
-  f <- sepBy jvalue ','
+  f <- sepBy jvalue (char ',')
   (char ']') <?> "] at end of array"
-  return JSONNull
+  return $ JSONArray f
 
-fields = sepBy (jkeyValue) (char ',')
-jkeyValue = do
-  key <- jkey
-  (char ':')
-  val <- jvalue
-  return (key, val)
+fields = sepBy (do
+    char '\''
+    key <- many alphaNum
+    char '\''
+    char ':'
+    jval <- jvalue
+    return (key, jval) 
+  ) (char ',')
 
-jkey = jquotedKey <|> identifier
+jstring = do 
+  s <- many1 alphaNum
+  return $ JSONString s
+  
+parseJSON s = parse jvalue "json" s
 
-jquotedKey = do
-  char '\''
-  i <- identifier
-  char '\''
-  return i
-
-jstring = many alphaNum
-identifier = many alphaNum
