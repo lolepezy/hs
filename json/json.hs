@@ -80,30 +80,29 @@ data JSONValue = JSONObject [(String, JSONValue)]
   deriving (Eq, Ord, Show)
 
 jvalue :: Parser JSONValue
-jvalue = try jarray <|> try jobject <|> try jstring
+jvalue = jarray <|> jobject 
+jany = jvalue <|> jstring
 
 jobject :: Parser JSONValue
 jobject = do 
   (char '{') 
-  f <- fields
+  f <- sepBy (do
+      char '\''  
+      key <- many alphaNum
+      char '\''
+      char ':'
+      jval <- jany
+      return (key, jval) 
+    ) (char ',')
   (char '}') <?> "} at end of object"
   return $ JSONObject f
   
 jarray :: Parser JSONValue
 jarray = do
-  (char '[') 
-  f <- sepBy jvalue (char ',')
-  (char ']') <?> "] at end of array"
+  (char '[' >> spaces) 
+  f <- sepBy jany (char ',')
+  (spaces >> char ']') <?> "] at end of array"
   return $ JSONArray f
-
-fields = sepBy (do
-    char '\''
-    key <- many alphaNum
-    char '\''
-    char ':'
-    jval <- jvalue
-    return (key, jval) 
-  ) (char ',')
 
 jstring = do 
   s <- many1 alphaNum
