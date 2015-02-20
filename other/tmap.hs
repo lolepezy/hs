@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar
+import Control.Monad.IO.Class
 
 type TTreeMap k v = TVar (TreeMapImpl k v)
 
@@ -38,14 +39,14 @@ insertImpl n@(Node key value left right) key' value'
                    insertImpl t ke val >>= \newT -> 
                    writeTVar tTree newT
 
-insert :: (Eq k, Ord k) => TTreeMap k v -> k -> v -> IO (TTreeMap k v)
-insert stmMap k v = atomically $ readTVar stmMap >>= \m -> 
+insert :: (Eq k, Ord k) => TTreeMap k v -> k -> v -> STM (TTreeMap k v)
+insert stmMap k v = readTVar stmMap >>= \m -> 
                                  insertImpl m k v >>= \newM -> 
                                  writeTVar stmMap newM >>= \_ -> return stmMap
 
 
-get :: (Eq k, Ord k) => TTreeMap k v -> k -> IO (Maybe v)
-get stmMap k = atomically $ readTVar stmMap >>= \m -> getImpl m k
+get :: (Eq k, Ord k) => TTreeMap k v -> k -> STM (Maybe v)
+get stmMap k = readTVar stmMap >>= \m -> getImpl m k
 
 getImpl :: (Eq k, Ord k) => TreeMapImpl k v -> k -> STM (Maybe v)
 
@@ -60,16 +61,7 @@ getImpl (Node key value left right) key'
   | key' > key  = readTVar right >>= \ri -> getImpl ri key'
   | otherwise   = return Nothing
 
-
-
-propMapInsertGet :: [Int] -> [String] -> Bool
-propMapInsertGet key value = let 
-    m = insert emptySTMMap key value
-  in case get m key of
-     Just v -> v == value
-     Nothing -> False 
-
-
+{-
 propMapInsertGetBatch :: [(String, Int)] -> Bool
 propMapInsertGetBatch keysValues = snd $ foldr  
   (\(key, value) (mm, flag) -> let mx = insert mm key value 
@@ -78,6 +70,11 @@ propMapInsertGetBatch keysValues = snd $ foldr
                                          Nothing -> False
                                in (mx, f && flag)) (emptySTMMap, True) keysValues
 
+-}
 
-main = quickCheck propMapInsertGetBatch
+main = do
+  x <- atomically $ emptySTMMap >>= \m -> 
+                      insert m "1" "3" >>= \m -> 
+                        get m "1"
+  print x  -- quickCheck propMapInsertGetBatch
 
