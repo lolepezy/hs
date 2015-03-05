@@ -1,6 +1,6 @@
-{-# LANGUAGE GADTs, StandaloneDeriving, FlexibleInstances #-}
+
 import Test.QuickCheck
-import Test.HUnit
+import Test.QuickCheck.Monadic as QCM
 import Data.List (elem)
 import Data.Set (toList, fromList)
 import Control.Monad
@@ -12,8 +12,8 @@ import Control.Monad.IO.Class
 type TTreeMap k v = TVar (TreeMapImpl k v)
 
 data TreeMapImpl k v = Empty 
-  | Leaf k v 
-  | Node k v (TTreeMap k v) (TTreeMap k v)
+  | Leaf !k !v 
+  | Node !k !v !(TTreeMap k v) !(TTreeMap k v)
   deriving (Eq)
 
 emptySTMMap :: STM (TTreeMap k v)
@@ -22,18 +22,18 @@ emptySTMMap = newTVar Empty
 insertImpl :: (Eq k, Ord k) => TreeMapImpl k v -> k -> v -> STM (TreeMapImpl k v)
 insertImpl Empty key value = return $ Leaf key value
 insertImpl (Leaf key value) key' value' 
-  | key' < key = newTVar (Leaf key' value') >>= \left ->
-                 newTVar Empty >>= \right ->
-                 return $ Node key value left right
+  | key' < key  = newTVar (Leaf key' value') >>= \left ->
+                  newTVar Empty >>= \right ->
+                  return $ Node key value left right
   | key' == key = return (Leaf key value')
-  | otherwise =  newTVar Empty >>= \left ->
-                 newTVar (Leaf key' value') >>= \right ->
-                 return $ Node key value left right
+  | otherwise   = newTVar Empty >>= \left ->
+                  newTVar (Leaf key' value') >>= \right ->
+                  return $ Node key value left right
 
 insertImpl n@(Node key value left right) key' value' 
-  | key' < key  = replaceSubTree left key' value' >>= \_ -> return $ n
+  | key' < key  = replaceSubTree left key' value' >> return n
   | key' == key = return $ Node key value' left right
-  | otherwise   = replaceSubTree right key' value' >>= \_ -> return $ n
+  | otherwise   = replaceSubTree right key' value' >> return n
   where
     replaceSubTree tTree ke val = readTVar tTree >>= \t -> 
                    insertImpl t ke val >>= \newT -> 
@@ -41,8 +41,8 @@ insertImpl n@(Node key value left right) key' value'
 
 insert :: (Eq k, Ord k) => TTreeMap k v -> k -> v -> STM (TTreeMap k v)
 insert stmMap k v = readTVar stmMap >>= \m -> 
-                                 insertImpl m k v >>= \newM -> 
-                                 writeTVar stmMap newM >>= \_ -> return stmMap
+                    insertImpl m k v >>= \newM -> 
+                    writeTVar stmMap newM >> return stmMap
 
 
 get :: (Eq k, Ord k) => TTreeMap k v -> k -> STM (Maybe v)
@@ -61,20 +61,32 @@ getImpl (Node key value left right) key'
   | key' > key  = readTVar right >>= \ri -> getImpl ri key'
   | otherwise   = return Nothing
 
-{-
-propMapInsertGetBatch :: [(String, Int)] -> Bool
-propMapInsertGetBatch keysValues = snd $ foldr  
-  (\(key, value) (mm, flag) -> let mx = insert mm key value 
-                                   f = case get mx key of
-                                         Just v -> v == value
-                                         Nothing -> False
-                               in (mx, f && flag)) (emptySTMMap, True) keysValues
 
+{-
+select blabla::([], [[]]) from :: x 
 -}
 
+prop_insertAndGet :: Property
+prop_insertAndGet = QCM.monadicIO $ do 
+  keysAndValues <- pick arbitrary
+  qq <- QCM.run $ insertAndGet emptySTMMap keysAndValues
+  assert $ qq
+  where
+    insertAndGet :: STM (TTreeMap Int String) -> [(Int, String)] -> IO Bool
+    insertAndGet mm kvs = atomically $ do
+      mz <- mm
+      (m, e) <- foldM ig (mz, True) kvs
+      return $ e
+
+    ig :: (TTreeMap Int String, Bool) -> (Int, String) -> STM (TTreeMap Int String, Bool)
+    ig (m, equals) (k, v) = do
+      m' <- insert m k v
+      v' <- get m' k
+      return $ (m', equals && case v' of
+                                Just q -> q == v
+                                Nothing -> False)
+
+
 main = do
-  x <- atomically $ emptySTMMap >>= \m -> 
-                      insert m "1" "3" >>= \m -> 
-                        get m "1"
-  print x  -- quickCheck propMapInsertGetBatch
+  quickCheck prop_insertAndGet
 
