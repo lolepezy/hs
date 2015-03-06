@@ -69,17 +69,17 @@ select blabla::([], [[]]) from :: x
 prop_insertAndGet :: Property
 prop_insertAndGet = QCM.monadicIO $ do 
   keysAndValues <- pick arbitrary
-  qq <- QCM.run $ insertAndGet emptySTMMap keysAndValues
+  qq <- QCM.run $ insertAndGetAll emptySTMMap keysAndValues
   assert $ qq
   where
-    insertAndGet :: STM (TTreeMap Int String) -> [(Int, String)] -> IO Bool
-    insertAndGet mm kvs = atomically $ do
+    insertAndGetAll :: STM (TTreeMap Int String) -> [(Int, String)] -> IO Bool
+    insertAndGetAll mm kvs = atomically $ do
       mz <- mm
-      (m, e) <- foldM ig (mz, True) kvs
+      (m, e) <- foldM insertAndGet (mz, True) kvs
       return $ e
 
-    ig :: (TTreeMap Int String, Bool) -> (Int, String) -> STM (TTreeMap Int String, Bool)
-    ig (m, equals) (k, v) = do
+    insertAndGet :: (TTreeMap Int String, Bool) -> (Int, String) -> STM (TTreeMap Int String, Bool)
+    insertAndGet (m, equals) (k, v) = do
       m' <- insert m k v
       v' <- get m' k
       return $ (m', equals && case v' of
