@@ -5,6 +5,7 @@ import Data.List (elem)
 import Data.Set (toList, fromList)
 import Control.Monad
 import Control.Concurrent
+import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar
 import Control.Monad.IO.Class
@@ -69,7 +70,17 @@ select blabla::([], [[]]) from :: x
 prop_insertAndGet :: Property
 prop_insertAndGet = QCM.monadicIO $ do 
   keysAndValues <- pick arbitrary
-  qq <- QCM.run $ insertAndGetAll emptySTMMap keysAndValues
+  let m = emptySTMMap
+  qq <- QCM.run $ do 
+    a0 <- async $ insertAndGetAll m keysAndValues
+    a1 <- async $ insertAndGetAll m keysAndValues
+    a2 <- async $ insertAndGetAll m keysAndValues
+    a3 <- async $ insertAndGetAll m keysAndValues
+    r0 <- wait a0
+    r1 <- wait a1
+    r2 <- wait a2
+    r3 <- wait a3
+    return $ r0 && r1 && r2 && r3
   assert $ qq
   where
     insertAndGetAll :: STM (TTreeMap Int String) -> [(Int, String)] -> IO Bool
