@@ -72,15 +72,18 @@ prop_insertAndGet = QCM.monadicIO $ do
   keysAndValues <- pick arbitrary
   let m = emptySTMMap
   qq <- QCM.run $ do 
-    a0 <- async $ insertAndGetAll m keysAndValues
-    a1 <- async $ insertAndGetAll m keysAndValues
-    a2 <- async $ insertAndGetAll m keysAndValues
-    a3 <- async $ insertAndGetAll m keysAndValues
+    -- so some random transformations of arguments
+    a0 <- async $ insertAndGetAll m $ filter ((>=0) . fst) keysAndValues
+    a1 <- async $ insertAndGetAll m $ filter ((<0) . fst) keysAndValues
+    a2 <- async $ insertAndGetAll m $ map (\(k,v) -> (2*k, v)) keysAndValues
+    a3 <- async $ insertAndGetAll m $ keysAndValues
+    a4 <- async $ insertAndGetAll m $ keysAndValues
     r0 <- wait a0
     r1 <- wait a1
     r2 <- wait a2
     r3 <- wait a3
-    return $ r0 && r1 && r2 && r3
+    r4 <- wait a4
+    return $ r0 && r1 && r2 && r3 && r4
   assert $ qq
   where
     insertAndGetAll :: STM (TTreeMap Int String) -> [(Int, String)] -> IO Bool
