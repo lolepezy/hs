@@ -47,14 +47,18 @@ apply i1@(Interval b1 e1 pay1) i2@(Interval b2 e2 pay2) =
 
 winner p1 p2 = if priority p1 < priority p2 then p1 else p2
 
-divideToSegments ints =
-  let (segment, leftover) = intersectingSubset ints
-      intersectingSubset [] = ([], [])
-      intersectingSubset (i:is) =
-        let s = span (`intersect` i) is in (i:fst s, snd s)
-      in case leftover of
-          [] -> [segment]
-          _  -> segment : divideToSegments leftover
+divideToSegments [] = []
+divideToSegments (i:ints) =
+  case splitIntersecting [i] ints of
+    ([], x)             -> [x]
+    (x, [])             -> [x]
+    (segment, leftover) -> segment : divideToSegments leftover
+  where
+    splitIntersecting b [] = (b, [])
+    splitIntersecting b x@(ii:is)
+      | any (`intersect` i) b = splitIntersecting (b ++ [ii]) is
+      | otherwise             = (b, x)
+
 
 
 main :: IO ()
@@ -68,8 +72,9 @@ main = do
   print $ intersect (Interval 2 3 (Payload 0 ())) (Interval 2 5 (Payload 0 ()))
   print $ not $ intersect (Interval 2 5 (Payload 0 ())) (Interval 1 2 (Payload 0 ()))
 
-  let i1 = Interval 1 3 (Payload 0 ())
-  let i2 = Interval 2 4 (Payload 1 ())
-  let t1 = [ i1 ]
+  let i1 = Interval 0 18 (Payload 2 ())
+  let i2 = Interval 5 15 (Payload 0 ())
+  let i3 = Interval 7 20  (Payload 1 ())
+  let i4 = Interval 20 30 (Payload 1 ())
 
-  print $ merge [ i1, i2 ]
+  print $ divideToSegments [ i1, i2, i4 ]
