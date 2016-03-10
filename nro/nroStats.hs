@@ -31,21 +31,28 @@ merge ints = concatMap resolve $
 
 
 resolve [] = []
-resolve (s:others) =
-  foldl(\rr s1 -> concatMap (\r -> s1 `apply` r) rr) [s] others
+resolve (s:others) = go [s] others
+  where
+    go divided [] = divided
+    go divided (s1 : ss) = go (s1 `addTo` divided) ss
 
-apply :: Ord i => Interval i p -> Interval i p -> [Interval i p]
-apply i1@(Interval b1 e1 pay1) i2@(Interval b2 e2 pay2) =
-  filter (\(Interval b e _) -> b /= e) $
-    if b1 < b2 then
-      if e1 <= b2 then [ i1, i2 ]
-        else if e1 <= e2
-          then [ Interval b1 b2 pay1, Interval b2 e1 (winner pay1 pay2), Interval e1 e2 pay2 ]
-          else [ Interval b1 b1 pay1, Interval b2 e2 (winner pay1 pay2), Interval e2 e1 pay1 ]
-      else
-        apply i2 i1
 
-winner p1 p2 = if priority p1 < priority p2 then p1 else p2
+addTo :: Ord i => Interval i p -> [Interval i p] -> [Interval i p]
+addTo src@(Interval bs es ps) dest = filter (\(Interval b e _) -> b /= e) $ go dest
+  where
+    srcApplied dst@(Interval bd ed pd)
+      | bs >= ed                         = [ dst ]
+      | bs >= bd && bs <= ed && es > ed  = [ Interval bd bs pd, Interval bs ed (winner ps pd) ]
+      | bs >= bd && es <= ed             = [ Interval bd bs pd, Interval bs es (winner ps pd), Interval es ed pd ]
+      | bs < bd  && es > ed              = [ Interval bs bd ps, Interval bd ed (winner ps pd), Interval ed es ps ]
+      | bs < bd  && es <= ed && es > bd  = [ Interval bs bd ps, Interval bd es (winner ps pd), Interval es ed pd ]
+      | es < bd                          = [ dst ]
+
+    go [] = []
+    go [d@(Interval _ ed _)] = srcApplied d ++ [ Interval ed es ps | es > ed ]
+    go (d : dests)           = srcApplied d ++ go dests
+
+    winner p1 p2 = if priority p1 < priority p2 then p1 else p2
 
 divideToSegments [] = []
 divideToSegments (i:ints) =
@@ -77,4 +84,5 @@ main = do
   let i3 = Interval 7 20  (Payload 1 ())
   let i4 = Interval 20 30 (Payload 1 ())
 
-  print $ divideToSegments [ i1, i2, i4 ]
+  -- print $ resolve [ i1, i2, i3 ]
+  print $ merge [ i1, i2, i3 ]
