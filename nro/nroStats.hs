@@ -40,12 +40,17 @@ resolve (s:others) = go [s] others
 addTo :: Ord i => Interval i p -> [Interval i p] -> [Interval i p]
 addTo src@(Interval bs es ps) dest = filter (\(Interval b e _) -> b /= e) $ go dest
   where
+    -- bs = 7
+    -- es = 20
+    -- bd = 15
+    -- ed = 18
+
     srcApplied dst@(Interval bd ed pd)
       | bs >= ed                         = [ dst ]
       | bs >= bd && bs <= ed && es > ed  = [ Interval bd bs pd, Interval bs ed (winner ps pd) ]
       | bs >= bd && es <= ed             = [ Interval bd bs pd, Interval bs es (winner ps pd), Interval es ed pd ]
-      | bs < bd  && es > ed              = [ Interval bs bd ps, Interval bd ed (winner ps pd), Interval ed es ps ]
-      | bs < bd  && es <= ed && es > bd  = [ Interval bs bd ps, Interval bd es (winner ps pd), Interval es ed pd ]
+      | bs < bd  && es > ed              = [ Interval bd ed (winner ps pd) ]
+      | bs < bd  && es <= ed && es > bd  = [ Interval bd es (winner ps pd) ]
       | es < bd                          = [ dst ]
 
     go [] = []
@@ -82,7 +87,7 @@ main = do
   let i1 = Interval 0 18 (Payload 2 ())
   let i2 = Interval 5 15 (Payload 0 ())
   let i3 = Interval 7 20  (Payload 1 ())
-  let i4 = Interval 20 30 (Payload 1 ())
+  let i4 = Interval 25 30 (Payload 0 ())
+  let i5 = Interval 27 32 (Payload 1 ())
 
-  -- print $ resolve [ i1, i2, i3 ]
-  print $ merge [ i1, i2, i3 ]
+  print $ divideToSegments [ i1, i2, i3, i4 ]
