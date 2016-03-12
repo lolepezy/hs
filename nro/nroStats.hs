@@ -68,7 +68,7 @@ divideToSegments (i:ints) =
   where
     splitIntersecting b [] = (b, [])
     splitIntersecting b x@(ii:is)
-      | any (`intersect` i) b = splitIntersecting (b ++ [ii]) is
+      | any (`intersect` ii) b = splitIntersecting (b ++ [ii]) is
       | otherwise             = (b, x)
 
 
@@ -90,4 +90,6 @@ main = do
   let i4 = Interval 25 30 (Payload 0 ())
   let i5 = Interval 27 32 (Payload 1 ())
 
-  print $ divideToSegments [ i1, i2, i3, i4 ]
+  let list = [ i1, i2, i3, i4 ]
+  print list
+  print $ merge list
